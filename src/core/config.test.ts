@@ -39,6 +39,42 @@ const BOOTSTRAP_CONFIG_TEMPLATE = (agent: string) =>
 describe("loadConfig", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubEnv("GNHF_CONFIG_DIR", "");
+  });
+
+  it("isolates bootstrap and relative agent paths in GNHF_CONFIG_DIR", () => {
+    vi.stubEnv("GNHF_CONFIG_DIR", "./protected-config");
+    mockReadFileSync.mockReturnValue(
+      "agentPathOverride:\n  codex: ./bin/codex\n",
+    );
+    const config = loadConfig();
+    expect(mockReadFileSync).toHaveBeenCalledWith(
+      resolve("protected-config/config.yml"),
+      "utf-8",
+    );
+    expect(config.agentPathOverride.codex).toBe(
+      resolve("protected-config/bin/codex"),
+    );
+  });
+
+  it("bootstraps an isolated config without writing the home config", () => {
+    vi.stubEnv("GNHF_CONFIG_DIR", "./protected-config");
+    mockReadFileSync.mockImplementation(() => {
+      throw Object.assign(new Error("missing"), { code: "ENOENT" });
+    });
+    loadConfig();
+    expect(mockWriteFileSync).toHaveBeenCalledWith(
+      resolve("protected-config/config.yml"),
+      BOOTSTRAP_CONFIG_TEMPLATE("claude"),
+      "utf-8",
+    );
+  });
+
+  it("reserves the Codex stdin prompt marker", () => {
+    mockReadFileSync.mockReturnValue(
+      'agentArgsOverride:\n  codex:\n    - "-"\n',
+    );
+    expect(() => loadConfig()).toThrow(/managed by gnhf/);
   });
 
   it("returns defaults when config file does not exist", () => {

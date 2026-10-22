@@ -221,9 +221,15 @@ If you run `gnhf` on an existing `gnhf/` branch with a different prompt, gnhf as
 | `--meteor-frequency <n>`           | Set TUI meteor frequency from 0 to 5 (`0` disables meteors)                                        | `3`                    |
 | `--version`                        | Show version                                                                                       |                        |
 
+For project-owned queues, cumulative shared budgets, and repair after a failed
+run, see the optional [supervised recovery companion](contrib/supervisor/README.md).
+
 ## Configuration
 
-Config lives at `~/.gnhf/config.yml`.
+Config lives at `~/.gnhf/config.yml`. Set `GNHF_CONFIG_DIR` to use another directory
+(relative paths resolve from the current working directory). Bootstrap and relative
+agent paths use that directory too, so a supervised run can keep a protected config
+without changing the user's home configuration.
 If the file does not exist yet, `gnhf` creates it on first run with its defaults.
 A supplied `--agent` is written as the default agent.
 With the default configuration, it has this exact content:

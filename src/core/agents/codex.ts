@@ -86,7 +86,6 @@ function terminateCodexProcess(
 }
 
 function buildCodexArgs(
-  prompt: string,
   schemaPath: string,
   extraArgs?: string[],
   model?: string,
@@ -108,7 +107,7 @@ function buildCodexArgs(
     "exec",
     ...userArgs,
     ...(model ? ["--model", model] : []),
-    prompt,
+    "-",
     "--json",
     "--output-schema",
     schemaPath,
@@ -165,11 +164,11 @@ export class CodexAgent implements Agent {
 
       const child = spawn(
         this.bin,
-        buildCodexArgs(prompt, this.schemaPath, this.extraArgs, this.model),
+        buildCodexArgs(this.schemaPath, this.extraArgs, this.model),
         {
           cwd,
           shell: shouldUseWindowsShell(this.bin, this.platform),
-          stdio: ["ignore", "pipe", "pipe"],
+          stdio: ["pipe", "pipe", "pipe"],
           env: process.env,
         },
       );
@@ -227,6 +226,9 @@ export class CodexAgent implements Agent {
           );
         }
       });
+
+      child.stdin!.on("error", reject);
+      child.stdin!.end(prompt);
     });
   }
 }

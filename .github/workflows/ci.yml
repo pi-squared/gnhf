@@ -32,3 +32,21 @@ jobs:
       - run: pnpm run format:check
       - run: pnpm run typecheck
       - run: pnpm test
+
+  supervised-recovery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Enable isolated candidate verification on the disposable runner
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          if sysctl kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          bwrap --unshare-all --ro-bind / / -- true
+      - name: Exercise synthetic orchestration and repair
+        run: python3 -m unittest discover -s contrib/supervisor -p 'test_*.py'

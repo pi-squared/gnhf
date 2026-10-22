@@ -140,6 +140,7 @@ function isReservedAgentArg(agent: AgentName, arg: string): boolean {
     case "codex":
       return (
         arg === "exec" ||
+        arg === "-" ||
         arg === "--json" ||
         arg === "--output-schema" ||
         arg.startsWith("--output-schema=") ||
@@ -716,7 +717,9 @@ function serializeConfig(config: Config): string {
 }
 
 export function loadConfig(overrides?: Partial<Config>): Config {
-  const configDir = join(homedir(), ".gnhf");
+  const configDir = process.env.GNHF_CONFIG_DIR
+    ? resolve(process.env.GNHF_CONFIG_DIR)
+    : join(homedir(), ".gnhf");
   const configPath = join(configDir, "config.yml");
   let fileConfig: Partial<Config> = {};
   let shouldBootstrapConfig = false;
