@@ -18,7 +18,7 @@ class BridgeTests(unittest.TestCase):
             root = Path(folder)
             fake = root / "codex"
             fake.write_text("#!" + sys.executable + "\nimport json,sys\n"
-                            "p=sys.stdin.read()\n"
+                            "p=sys.stdin.read(); assert 'task-new' in p\n"
                             "print(json.dumps({'type':'turn.completed','usage':{'input_tokens':10,'output_tokens':2}}))\n"
                             "print(json.dumps({'type':'item.completed','item':{'type':'agent_message','text':"
                             "json.dumps({'success':True,'should_fully_stop':True,'summary':p})}}))\n")

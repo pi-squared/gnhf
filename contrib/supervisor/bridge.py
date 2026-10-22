@@ -23,8 +23,10 @@ def main():
     if "-" not in args:
         raise ValueError("The supervised bridge requires GNHF's stdin prompt transport")
     prompt = sys.stdin.read()
+    current = next((task for task in before if task["status"] == "admitted"), before[0] if before else None)
+    frontier = {"current_task": current, "remaining_task_ids": [task["id"] for task in before]}
     prompt += ("\n\nAuthoritative current durable task frontier (refreshes each iteration):\n" +
-               json.dumps(before) + "\nReconcile admitted executions before starting new model work. "
+               json.dumps(frontier) + "\nReconcile admitted executions before starting new model work. "
                "Use the project's recorded job interface; never repeat completed deliveries.")
     if len(prompt) > config.get("max_prompt_characters", 900_000):
         raise ValueError("Prepared prompt exceeds the configured input limit; split the task losslessly")

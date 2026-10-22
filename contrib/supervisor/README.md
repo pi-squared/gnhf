@@ -115,8 +115,9 @@ responses are not copied into its workspace. The generated Codex command uses
 `workspace-write` and disables web search. This is a workspace policy, not a
 secret-isolating container; use your normal agent credential and sandbox policy.
 
-Candidate tests and frozen verification run in a separate process with a
-read-only filesystem and no network. They cannot mutate the controller's Python
+Candidate tests and frozen verification run in separate process and user
+namespaces with a read-only filesystem and no network. They cannot address the
+controller's processes or mutate its Python
 globals, budget or private state. Verification must produce both an implementation
 change and a regression-test change. An atomic-file installation journal and
 backups let restart finish the same verified installation; concurrent project

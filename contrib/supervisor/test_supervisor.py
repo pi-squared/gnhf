@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import runpy
 import shutil
 import subprocess
 import sys
@@ -16,7 +17,7 @@ HERE = Path(__file__).absolute().parent
 def isolation_available():
     if not shutil.which("bwrap"):
         return False
-    return subprocess.run(["bwrap", "--unshare-net", "--ro-bind", "/", "/", "--", "true"],
+    return subprocess.run(["bwrap", "--unshare-all", "--ro-bind", "/", "/", "--", "true"],
                           capture_output=True).returncode == 0
 
 
@@ -29,8 +30,8 @@ class SupervisorTests(unittest.TestCase):
         (self.root / "project/worker.py").write_text("answer = 'broken'\n")
         (self.root / "project/test_worker.py").write_text("# original regression test\n")
         (self.root / "main.py").write_text(
-            "from pathlib import Path\nfrom datetime import datetime,timezone\nimport json,os\n"
-            "p=Path('project/worker.py'); fixed=\"'fixed'\" in p.read_text()\n"
+            "from pathlib import Path\nfrom datetime import datetime,timezone\nimport json,runpy\n"
+            "fixed=runpy.run_path('project/worker.py')['answer']=='fixed'\n"
             "r=Path('runs/one'); r.mkdir(parents=True,exist_ok=True)\n"
             "v={'status':'completed' if fixed else 'aborted',"
             "'endedAt':datetime.now(timezone.utc).isoformat()}\n"
@@ -49,10 +50,8 @@ class SupervisorTests(unittest.TestCase):
             "repair_command": [sys.executable, str(self.root / "repair.py")],
             "repair_files": {"worker.py": "project/worker.py", "test_worker.py": "project/test_worker.py"},
             "fixture_files": {}, "regression_command": [sys.executable, "test_worker.py"],
-            "verify_command": [sys.executable, "-c", "from pathlib import Path; "
-                               "assert \"'fixed'\" in Path('worker.py').read_text()"],
-            "completion_command": [sys.executable, "-c", "from pathlib import Path; "
-                                   "assert \"'fixed'\" in Path('project/worker.py').read_text()"],
+            "verify_command": [sys.executable, "-c", "import runpy; assert runpy.run_path('worker.py')['answer']=='fixed'"],
+            "completion_command": [sys.executable, "-c", "import runpy; assert runpy.run_path('project/worker.py')['answer']=='fixed'"],
         }
 
     def run_owner(self):
@@ -67,7 +66,7 @@ class SupervisorTests(unittest.TestCase):
         state = read(self.root / "state/lifecycle.json")
         self.assertEqual(state["state"], "completed")
         self.assertEqual(state["attempt"], 2)
-        self.assertIn("'fixed'", (self.root / "project/worker.py").read_text())
+        self.assertEqual(runpy.run_path(str(self.root / "project/worker.py"))["answer"], "fixed")
         self.assertEqual(len(list((self.root / "state/operations").glob("repair-*"))), 1)
         self.assertEqual(read(self.root / "state/budget.json")["operations"]["repair-1"]["used"], 15)
         self.assertEqual(self.run_owner().returncode, 0)
@@ -113,7 +112,7 @@ class SupervisorTests(unittest.TestCase):
         result = self.run_owner()
         self.assertEqual(result.returncode, 3, result.stderr)
         self.assertEqual(read(self.root / "state/lifecycle.json")["reason"], "protected_asset_changed")
-        self.assertIn("broken", (self.root / "project/worker.py").read_text())
+        self.assertEqual(runpy.run_path(str(self.root / "project/worker.py"))["answer"], "broken")
         self.assertEqual(len(list((self.root / "state/operations").glob("repair-*"))), 3)
 
     def test_operator_stop_never_starts_repair(self):

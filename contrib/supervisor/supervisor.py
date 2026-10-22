@@ -114,7 +114,7 @@ class Supervisor:
         if candidate:
             # Candidate code never runs in the supervisor interpreter, with write
             # access to its private state, or with a network interface.
-            command = ["bwrap", "--unshare-net", "--ro-bind", "/", "/",
+            command = ["bwrap", "--unshare-all", "--die-with-parent", "--new-session", "--ro-bind", "/", "/",
                        "--proc", "/proc", "--dev", "/dev", "--chdir", str(candidate), "--", *command]
         result = subprocess.run(command, cwd=candidate or self.project,
                                 env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
@@ -221,7 +221,7 @@ class Supervisor:
             return
         candidate = self.prepare(state)
         if not shutil.which("bwrap") or subprocess.run(
-                ["bwrap", "--unshare-net", "--ro-bind", "/", "/", "--", "true"],
+                ["bwrap", "--unshare-all", "--ro-bind", "/", "/", "--", "true"],
                 capture_output=True).returncode:
             self.checkpoint(state, "recovery_blocked", reason="verification_isolation_unavailable")
             return
