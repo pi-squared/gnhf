@@ -41,6 +41,7 @@
   "files": [
     "dist",
     "skills",
+    "contrib/supervisor",
     "LICENSE",
     "README.md"
   ],

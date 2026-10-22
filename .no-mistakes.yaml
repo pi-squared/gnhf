@@ -1,7 +1,8 @@
 # Per-repo no-mistakes overrides.
 
-# Keep pipeline test evidence (transcripts, screenshots, fixture homes) in
-# this repo so runs can attach it from the checkout instead of a temp dir.
+# Keep operational transcripts and fixture homes private. The PR can summarize
+# synthetic verification without publishing raw pipeline artifacts.
 test:
   evidence:
-    store_in_repo: true
+    store_in_repo: false
+    attach_media: false

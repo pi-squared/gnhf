@@ -15,7 +15,7 @@ function createMockProcess() {
   const proc = Object.assign(new EventEmitter(), {
     stdout: new EventEmitter(),
     stderr: new EventEmitter(),
-    stdin: null,
+    stdin: Object.assign(new EventEmitter(), { end: vi.fn() }),
     kill: vi.fn(),
   });
   return proc as typeof proc & ReturnType<typeof spawn>;
@@ -24,6 +24,17 @@ function createMockProcess() {
 describe("CodexAgent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("sends large prompts through stdin instead of the command line", () => {
+    const proc = createMockProcess();
+    mockSpawn.mockReturnValue(proc);
+    const prompt = "synthetic objective ".repeat(20_000);
+    new CodexAgent("/tmp/schema.json").run(prompt, "/work/dir");
+
+    expect(mockSpawn.mock.calls[0][1]).not.toContain(prompt);
+    expect(mockSpawn.mock.calls[0][1]).toContain("-");
+    expect(proc.stdin!.end).toHaveBeenCalledWith(prompt);
   });
 
   it("does not use a shell for direct Windows launches", () => {
@@ -39,7 +50,7 @@ describe("CodexAgent", () => {
       "codex",
       [
         "exec",
-        "test prompt",
+        "-",
         "--json",
         "--output-schema",
         "/tmp/schema.json",
@@ -50,7 +61,7 @@ describe("CodexAgent", () => {
       {
         cwd: "/work/dir",
         shell: false,
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"],
         env: process.env,
       },
     );
@@ -70,7 +81,7 @@ describe("CodexAgent", () => {
       "C:\\tools\\codex.cmd",
       [
         "exec",
-        "test prompt",
+        "-",
         "--json",
         "--output-schema",
         "/tmp/schema.json",
@@ -81,7 +92,7 @@ describe("CodexAgent", () => {
       {
         cwd: "/work/dir",
         shell: true,
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"],
         env: process.env,
       },
     );
@@ -104,7 +115,7 @@ describe("CodexAgent", () => {
       "codex-switch",
       [
         "exec",
-        "test prompt",
+        "-",
         "--json",
         "--output-schema",
         "/tmp/schema.json",
@@ -115,7 +126,7 @@ describe("CodexAgent", () => {
       {
         cwd: "/work/dir",
         shell: true,
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"],
         env: process.env,
       },
     );
@@ -145,7 +156,7 @@ describe("CodexAgent", () => {
         "-c",
         'model_reasoning_effort="high"',
         "--full-auto",
-        "test prompt",
+        "-",
         "--json",
         "--output-schema",
         "/tmp/schema.json",
@@ -171,7 +182,7 @@ describe("CodexAgent", () => {
         "exec",
         "--model",
         "gpt-5.4",
-        "test prompt",
+        "-",
         "--json",
         "--output-schema",
         "/tmp/schema.json",
@@ -197,7 +208,7 @@ describe("CodexAgent", () => {
       [
         "exec",
         "--sandbox=workspace-write",
-        "test prompt",
+        "-",
         "--json",
         "--output-schema",
         "/tmp/schema.json",
